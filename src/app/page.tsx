@@ -1,11 +1,23 @@
 "use client";
 
+import ArticleItem from "@/components/ArticleItem";
 import { useArticles } from "@/hooks/useArticles";
 import { supabase } from "@/lib/supabase";
 import { useEffect } from "react";
 
 export default function Home() {
   const { articles, getArticles } = useArticles();
+
+  // const subscribedChannel = supabase
+  //   .channel('articles-follow-up')
+  //   .on('postgres_changes', {
+  //     event: '*',
+  //     schema: 'public',
+  //     table: 'articles'
+  //   }, (payload: any) => {
+  //     console.log(payload)
+  //   })
+  //   .subscribe();
 
   const subscribedChannel = supabase
     .channel("articles-follow-up")
@@ -14,30 +26,25 @@ export default function Home() {
       {
         event: "*",
         schema: "public",
-        table: "article",
+        table: "votes",
       },
-      (payload: any) => {
-        console.log(payload);
+      async (payload: any) => {
+        await getArticles();
       }
     )
     .subscribe();
-
-  const unsubscribeFromArticles = () => {
-    supabase.removeChannel(subscribedChannel);
-  };
 
   useEffect(() => {
     getArticles();
   }, []);
 
   return (
-    <div>
-      <button onClick={() => unsubscribeFromArticles()}>Unsubscribe</button>
-      <ul>
+    <div className="container mx-auto my-8">
+      <div className="grid gap-4">
         {articles.map((article: any, key: number) => {
-          return <li key={key}>{article.title}</li>;
+          return <ArticleItem key={key} article={article} />;
         })}
-      </ul>
+      </div>
     </div>
   );
 }
