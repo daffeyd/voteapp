@@ -1,23 +1,43 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { signOut } from "@/lib/action";
+"use client";
 
-export default async function Home() {
-  // const supabase = createClient();
-  // const setNewView = async () => {
-  //   const { data, error } = await supabase.from("views").insert({
-  //     name: "random name",
-  //   });
-  //   if (data) console.log(data);
-  //   if (error) console.log(error);
-  // };
-  // setNewView();
+import { useArticles } from "@/hooks/useArticles";
+import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
+
+export default function Home() {
+  const { articles, getArticles } = useArticles();
+
+  const subscribedChannel = supabase
+    .channel("articles-follow-up")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "article",
+      },
+      (payload: any) => {
+        console.log(payload);
+      }
+    )
+    .subscribe();
+
+  const unsubscribeFromArticles = () => {
+    supabase.removeChannel(subscribedChannel);
+  };
+
+  useEffect(() => {
+    getArticles();
+  }, []);
+
   return (
     <div>
-      Logged In
-      <form>
-        <button formAction={signOut}>Logout</button>
-      </form>
+      <button onClick={() => unsubscribeFromArticles()}>Unsubscribe</button>
+      <ul>
+        {articles.map((article: any, key: number) => {
+          return <li key={key}>{article.title}</li>;
+        })}
+      </ul>
     </div>
   );
 }
